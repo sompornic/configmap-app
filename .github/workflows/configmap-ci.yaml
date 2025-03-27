@@ -1,46 +1,43 @@
-name: Trigger Helm Update Workflow
-
-on:
-  push:
-    branches:
-      - main  # ทำงานเมื่อ push ไปยัง branch main
-
-jobs:
-  update-helm-configmap:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout configmap-app repository
-        uses: actions/checkout@v3
-
-      - name: Read configmap.json
-        id: read_config
-        run: |
-          CONFIG_JSON=$(cat config-app/configmap.json | jq -c .)
-          echo "CONFIG_JSON=$CONFIG_JSON" >> $GITHUB_ENV
-
       - name: Update Helm values.yaml via GitHub API
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}   # ใช้ PAT Token ที่มีสิทธิ์ push
-          REPO_OWNER: "sompornic"   # เปลี่ยนเป็น owner ของ repo เป้าหมาย
-          REPO_NAME: "helm-app"  # ชื่อ repo เป้าหมาย
-          FILE_PATH: "app1/values.yaml" # ไฟล์ที่ต้องการแก้ไข
-          BRANCH: "main"  # Branch ที่ต้องการ push
-          CONFIG_PAYLOAD: ${{ env.CONFIG_JSON }}  # ค่า JSON ที่อ่านมา
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}   
+          REPO_OWNER: "sompornic"
+          REPO_NAME: "helm-app"
+          FILE_PATH: "app1/values.yaml"
+          BRANCH: "main"
+          CONFIG_PAYLOAD: ${{ env.CONFIG_JSON }}
         run: |
           echo "Fetching current values.yaml from GitHub API"
 
-          # ดึงข้อมูลไฟล์ values.yaml จาก GitHub API
+          # 🔍 ดึงข้อมูลจาก GitHub API
           RESPONSE=$(curl -s -H "Authorization: token $GH_TOKEN" \
             "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$FILE_PATH")
 
-          # ดึงค่า SHA ของไฟล์ปัจจุบัน
+          # 🔥 Debug ดูค่า RESPONSE
+          echo "API RESPONSE: $RESPONSE"
+
+          # ตรวจสอบว่า API ส่ง JSON มาถูกต้องหรือไม่
+          echo "$RESPONSE" | jq '.' || { echo "❌ ERROR: Invalid JSON response from GitHub API"; exit 1; }
+
+          # 📌 ดึงค่า SHA ของไฟล์ปัจจุบัน
           FILE_SHA=$(echo "$RESPONSE" | jq -r '.sha')
 
-          # ดึงค่า content ของไฟล์แล้ว decode base64
+          # 📌 ดึงค่า content ของไฟล์แล้ว decode base64
           FILE_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
+
+          # 🔥 Debug ดูค่าไฟล์ YAML ที่ได้
+          echo "Current values.yaml:"
+          echo "$FILE_CONTENT"
+
+          # ตรวจสอบว่า CONFIG_PAYLOAD มีค่า JSON ที่ถูกต้องหรือไม่
+          echo "$CONFIG_PAYLOAD" | jq '.' || { echo "❌ ERROR: Invalid JSON in CONFIG_PAYLOAD"; exit 1; }
 
           # ใช้ jq เพื่ออัปเดตค่า config_payload ใน values.yaml
           UPDATED_CONTENT=$(echo "$FILE_CONTENT" | jq --argjson newConfig "$CONFIG_PAYLOAD" '.config_payload = $newConfig')
+
+          # 🔥 Debug ดูค่าไฟล์ YAML ที่อัปเดตแล้ว
+          echo "Updated values.yaml:"
+          echo "$UPDATED_CONTENT"
 
           # Encode ข้อมูลใหม่เป็น Base64
           ENCODED_CONTENT=$(echo "$UPDATED_CONTENT" | base64 -w 0)
@@ -52,6 +49,10 @@ jobs:
             --arg content "$ENCODED_CONTENT" \
             --arg sha "$FILE_SHA" \
             '{ path: $path, message: $message, content: $content, sha: $sha }')
+
+          # 🔥 Debug ดู Payload ที่จะส่งไป
+          echo "Payload to GitHub API:"
+          echo "$PAYLOAD"
 
           # ส่ง API Request เพื่ออัปเดตไฟล์ใน GitHub
           curl -X PUT -H "Authorization: token $GH_TOKEN" \
