@@ -12,6 +12,11 @@ jobs:
       - name: Checkout configmap-app repository
         uses: actions/checkout@v3
 
+      - name: Install yq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq yq
+
       - name: Read configmap.json
         id: read_config
         run: |
@@ -21,37 +26,34 @@ jobs:
 
       - name: Update Helm values.yaml via GitHub API
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}   # ใช้ PAT Token ที่มีสิทธิ์ push
-          REPO_OWNER: "sompornic"   # เปลี่ยนเป็น owner ของ repo เป้าหมาย
-          REPO_NAME: "helm-app"  # ชื่อ repo เป้าหมาย
-          FILE_PATH: "app1/values.yaml" # ไฟล์ที่ต้องการแก้ไข
-          BRANCH: "main"  # Branch ที่ต้องการ push
-          CONFIG_PAYLOAD: ${{ env.CONFIG_JSON }}  # ค่า JSON ที่อ่านมา
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}   
+          REPO_OWNER: "sompornic"  
+          REPO_NAME: "helm-app"  
+          FILE_PATH: "app1/values.yaml"  
+          BRANCH: "main"  
+          CONFIG_PAYLOAD: ${{ env.CONFIG_JSON }}
         run: |
           echo "Fetching current values.yaml from GitHub API"
 
-          # 🔍 ดึงข้อมูลจาก GitHub API
+          # ดึงข้อมูลจาก GitHub API
           RESPONSE=$(curl -s -H "Authorization: token $GH_TOKEN" \
             "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$FILE_PATH")
 
-          # 📌 ดึงค่า SHA ของไฟล์ปัจจุบัน
+          # ดึงค่า SHA ของไฟล์ปัจจุบัน
           FILE_SHA=$(echo "$RESPONSE" | jq -r '.sha')
 
-          # 📌 ดึงค่า content ของไฟล์แล้ว decode base64
+          # ดึงค่า content ของไฟล์แล้ว decode base64
           FILE_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
 
-          # 🔥 แปลง JSON ให้เป็น YAML Multi-line String (Escape " และ \n)
-          CONFIG_YAML=$(echo "$CONFIG_PAYLOAD" | jq -c . | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          # อัปเดต config_payload ให้เป็น JSON Object ใน YAML
+          echo "$FILE_CONTENT" | yq eval ".config_payload = $CONFIG_PAYLOAD" - > updated_values.yaml
 
-          # ใช้ sed แบบปลอดภัย (เปลี่ยน delimiter เป็น #)
-          UPDATED_CONTENT=$(echo "$FILE_CONTENT" | sed "s#config_payload:.*#config_payload: |\\n  \"$CONFIG_YAML\"#")
-
-          # 🔥 Debug ดูค่าไฟล์ YAML ที่อัปเดตแล้ว
+          # ตรวจสอบไฟล์ที่แก้ไขแล้ว
           echo "Updated values.yaml:"
-          echo "$UPDATED_CONTENT"
+          cat updated_values.yaml
 
           # Encode ข้อมูลใหม่เป็น Base64
-          ENCODED_CONTENT=$(echo "$UPDATED_CONTENT" | base64 -w 0)
+          ENCODED_CONTENT=$(base64 -w 0 updated_values.yaml)
 
           # สร้าง JSON Payload สำหรับ GitHub API
           PAYLOAD=$(jq -n \
@@ -61,7 +63,7 @@ jobs:
             --arg sha "$FILE_SHA" \
             '{ path: $path, message: $message, content: $content, sha: $sha }')
 
-          # 🔥 Debug ดู Payload ที่จะส่งไป
+          # Debug ดู Payload ที่จะส่งไป
           echo "Payload to GitHub API:"
           echo "$PAYLOAD"
 
