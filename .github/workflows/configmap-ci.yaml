@@ -34,27 +34,17 @@ jobs:
           RESPONSE=$(curl -s -H "Authorization: token $GH_TOKEN" \
             "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$FILE_PATH")
 
-          # 🔥 Debug ดูค่า RESPONSE
-          echo "API RESPONSE: $RESPONSE"
-
-          # ตรวจสอบว่า API ส่ง JSON มาถูกต้องหรือไม่
-          echo "$RESPONSE" | jq '.' || { echo "❌ ERROR: Invalid JSON response from GitHub API"; exit 1; }
-
           # 📌 ดึงค่า SHA ของไฟล์ปัจจุบัน
           FILE_SHA=$(echo "$RESPONSE" | jq -r '.sha')
 
           # 📌 ดึงค่า content ของไฟล์แล้ว decode base64
           FILE_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
 
-          # 🔥 Debug ดูค่าไฟล์ YAML ที่ได้
-          echo "Current values.yaml:"
-          echo "$FILE_CONTENT"
+          # 🔥 แปลง JSON ให้เป็น YAML String Format
+          CONFIG_YAML=$(echo "$CONFIG_PAYLOAD" | jq -c . | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
 
-          # ตรวจสอบว่า CONFIG_PAYLOAD มีค่า JSON ที่ถูกต้องหรือไม่
-          echo "$CONFIG_PAYLOAD" | jq '.' || { echo "❌ ERROR: Invalid JSON in CONFIG_PAYLOAD"; exit 1; }
-
-          # ใช้ jq เพื่ออัปเดตค่า config_payload ใน values.yaml
-          UPDATED_CONTENT=$(echo "$FILE_CONTENT" | jq --argjson newConfig "$CONFIG_PAYLOAD" '.config_payload = $newConfig')
+          # อัปเดตค่า config_payload ให้เป็น Multi-line String
+          UPDATED_CONTENT=$(echo "$FILE_CONTENT" | sed "s|config_payload:.*|config_payload: |\\n  \"$CONFIG_YAML\"|")
 
           # 🔥 Debug ดูค่าไฟล์ YAML ที่อัปเดตแล้ว
           echo "Updated values.yaml:"
