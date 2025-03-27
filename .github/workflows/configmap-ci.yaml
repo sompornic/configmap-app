@@ -12,14 +12,6 @@ jobs:
       - name: Checkout configmap-app repository
         uses: actions/checkout@v3
 
-      - name: Install yq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-          chmod +x /usr/local/bin/yq
-          yq --version
-
       - name: Read configmap.json
         id: read_config
         run: |
