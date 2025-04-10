@@ -42,9 +42,9 @@ jobs:
           FILE_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
           echo "$FILE_CONTENT" > values.yaml
 
-          # ✅ ใช้ `yq` อัปเดต `config_payload` ให้เป็น JSON Object
-          echo "$CONFIG_PAYLOAD" | yq e -P '.' - > config_payload.yaml
-          yq e '.config_payload = load("config_payload.yaml")' values.yaml > updated_values.yaml
+          # ✅ ใช้ `yq` เพื่อแปลง config_payload จาก JSON เป็น YAML
+          echo "$CONFIG_PAYLOAD" | jq . > config_payload.json
+          yq eval ".config_payload = load(\"config_payload.json\")" values.yaml > updated_values.yaml
 
           # 🔥 Debug ไฟล์ที่แก้ไขแล้ว
           echo "Updated values.yaml:"
