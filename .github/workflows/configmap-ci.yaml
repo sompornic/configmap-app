@@ -24,7 +24,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
           REPO_OWNER: "sompornic"
           REPO_NAME: "helm-app"
-          FILE_PATH: "helm/node-be/configmap.json"
+          FILE_PATH: "helm/node-be/file/configmap.json"
           BRANCH: "main"
           ENCODED_CONTENT: ${{ env.ENCODED_CONTENT }}
         run: |
