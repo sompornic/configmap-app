@@ -43,10 +43,10 @@ jobs:
           echo "$FILE_CONTENT" > values.yaml
 
           # ✅ ใช้ `yq` อัปเดต `config_payload` ให้เป็น JSON Object
-          echo "$CONFIG_PAYLOAD" | jq 'to_entries | map("\(.key)") | .[]' | sed 's/\(.*\)/"\1"/' > formatted_config_payload.yaml
+          echo "$CONFIG_PAYLOAD" > config_payload.json
 
-          # 📌 ทำการรวมข้อมูลจาก config_payload ลงใน values.yaml
-          yq eval ".config_payload = load(\"formatted_config_payload.yaml\")" values.yaml > updated_values.yaml
+          # 📌 รวม config_payload ลงใน values.yaml
+          yq eval ".config_payload = load(\"config_payload.json\")" values.yaml > updated_values.yaml
 
           # 🔥 Debug ไฟล์ที่แก้ไขแล้ว
           echo "Updated values.yaml:"
