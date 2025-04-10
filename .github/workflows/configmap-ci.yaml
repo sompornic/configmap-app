@@ -42,11 +42,8 @@ jobs:
           FILE_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
           echo "$FILE_CONTENT" > values.yaml
 
-          # ✅ ใช้ `yq` อัปเดต `config_payload` ให้เป็น JSON Object
-          echo "$CONFIG_PAYLOAD" > config_payload.json
-
-          # 📌 รวม config_payload ลงใน values.yaml
-          yq eval ".config_payload = load(\"config_payload.json\")" values.yaml > updated_values.yaml
+          # ✅ ใช้ `yq` อัปเดต `config-iot.json` ให้เป็น JSON Object
+          yq eval ".config.configMap.config.\"config-iot.json\" = {\"appName\": \"ac-paragon\"}" values.yaml > updated_values.yaml
 
           # 🔥 Debug ไฟล์ที่แก้ไขแล้ว
           echo "Updated values.yaml:"
@@ -58,7 +55,7 @@ jobs:
           # สร้าง JSON Payload สำหรับ GitHub API
           PAYLOAD=$(jq -n \
             --arg path "$FILE_PATH" \
-            --arg message "Update config_payload in values.yaml" \
+            --arg message "Update config-iot.json in values.yaml" \
             --arg content "$ENCODED_CONTENT" \
             --arg sha "$FILE_SHA" \
             '{ path: $path, message: $message, content: $content, sha: $sha }')
