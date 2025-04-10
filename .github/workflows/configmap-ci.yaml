@@ -25,7 +25,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
           REPO_OWNER: "sompornic"
           REPO_NAME: "helm-app"
-          FILE_PATH: "app1/values.yaml"
+          FILE_PATH: "node-be/values.yaml"
           BRANCH: "main"
           CONFIG_PAYLOAD: ${{ env.CONFIG_JSON }}
         run: |
