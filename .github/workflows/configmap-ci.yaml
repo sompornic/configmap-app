@@ -42,8 +42,9 @@ jobs:
           FILE_CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
           echo "$FILE_CONTENT" > values.yaml
 
-          # ✅ ใช้ `yq` อัปเดต `config-iot.json` ให้เป็น JSON Object
-          yq eval '.config.configMap.config."config-iot.json" = {"appName": "ac-paragon", "projectName": "PARAGON", "coreVersion": "2.7.0", "namespace": "ac-paragon", "cert": {"certPath": "./ssl/smaf-partner-cert.pem", "keyPath": "./ssl/smaf-partner-key.pem"}, "port": {"httpPort": "8801"}, "mongo": {"useDB": "", "options": {"readPreference": "secondaryPreferred", "connectTimeoutMS": 10000, "maxPoolSize": 20, "minPoolSize": 1, "maxIdleTimeMS": 10000, "replicaSet": "replSet01"}}, "cache": {"useCache": false}, "plugin": {"cache": {}, "log": {"cedaLog": {"formatLog": {"detail": {"action": "#PARAM.action", "actionDescription": "#PARAM.actionDescription", "appName": "#CONF.projectName", "broker": "#HEAD.mfaf-broker", "channel": "#HEAD.mfaf-channel", "componentName": "#CONF.appName", "componentVersion": "#CONF.coreVersion", "device": "#HEAD.mfaf-device", "dependency": "#PARAM.dependency", "instance": "#PARAM.instance", "level": "info", "message": "#PARAM.message", "originateServiceName": "Event source", "public": "#HEAD.mfaf-public", "recordName": ["[", "#REQ.method", "]-", "#REQ.url"], "recordType": "#PARAM.recordType", "sessionId": "#HEAD.mfaf-session", "subAction": "#PARAM.subAction", "timestamp": "#PARAM.timestamp", "transactionId": "#HEAD.mfaf-transaction||#HEAD.nsb-transaction", "useCase": "#HEAD.mfaf-usecase", "useCaseStep": "#HEAD.mfaf-usecasestep", "user": "#HEAD.mfaf-user", "responseTime": ""}, "summary": {"appName": "#CONF.projectName", "appResult": "#PARAM.appResult", "appResultCode": "#PARAM.appResultCode", "appResultType": "#PARAM.appResultType", "broker": "#HEAD.mfaf-broker", "channel": "#HEAD.mfaf-channel", "componentName": "#CONF.appName", "componentVersion": "#CONF.coreVersion", "dateTime": "#PARAM.dateTime", "device": "#HEAD.mfaf-device", "instance": "#PARAM.instance", "level": "info", "originateServiceName": "Event source", "public": "#HEAD.mfaf-public", "recordName": ["[", "#REQ.method", "]-", "#REQ.url"], "recordType": "#PARAM.recordType", "sessionId": "#HEAD.mfaf-session", "severity": "#PARAM.severity", "stack": "#PARAM.stack", "transactionId": "#HEAD.mfaf-transaction", "useCase": "#HEAD.mfaf-usecase", "useCaseStep": "#HEAD.mfaf-usecasestep", "user": "#HEAD.mfaf-user"}, "error": {"action": "#PARAM.action", "actionDescription": "#PARAM.actionDescription", "appName": "#CONF.projectName", "broker": "#HEAD.mfaf-broker", "channel": "#HEAD.mfaf-channel", "componentName": "#CONF.appName", "componentVersion": "#CONF.coreVersion", "device": "#HEAD.mfaf-device", "dependency": "#PARAM.dependency", "instance": "#PARAM.instance", "level": "error", "message": "#PARAM.message", "originateServiceName": "Event source", "public": "#HEAD.mfaf-public", "recordName": ["[", "#REQ.method", "]-", "#REQ.url"], "recordType": "#PARAM.recordType", "sessionId": "#HEAD.mfaf-session", "subAction": "#PARAM.subAction", "timestamp": "#PARAM.timestamp", "transactionId": "#HEAD.mfaf-transaction", "useCase": "#HEAD.mfaf-usecase", "useCaseStep": "#HEAD.mfaf-usecasestep", "user": "#HEAD.mfaf-user", "stack": "#PARAM.stack"}}}}}' values.yaml > updated_values.yaml
+          # ✅ ใช้ `yq` อัปเดต `config_payload` ให้เป็น JSON Object
+          echo "$CONFIG_PAYLOAD" | yq e -P '.' - > config_payload.yaml
+          yq e '.config_payload = load("config_payload.yaml")' values.yaml > updated_values.yaml
 
           # 🔥 Debug ไฟล์ที่แก้ไขแล้ว
           echo "Updated values.yaml:"
@@ -55,7 +56,7 @@ jobs:
           # สร้าง JSON Payload สำหรับ GitHub API
           PAYLOAD=$(jq -n \
             --arg path "$FILE_PATH" \
-            --arg message "Update config-iot.json in values.yaml" \
+            --arg message "Update config_payload in values.yaml" \
             --arg content "$ENCODED_CONTENT" \
             --arg sha "$FILE_SHA" \
             '{ path: $path, message: $message, content: $content, sha: $sha }')
