@@ -44,7 +44,9 @@ jobs:
 
           # ✅ ใช้ `yq` อัปเดต `config_payload` ให้เป็น JSON Object
           echo "$CONFIG_PAYLOAD" | yq e -P '.' - > config_payload.yaml
-          yq e '.config_payload = load("config_payload.yaml")' values.yaml > updated_values.yaml
+
+          # 📌 ทำการรวมข้อมูลจาก config_payload ลงใน values.yaml
+          yq eval ".config_payload = load(\"config_payload.yaml\")" values.yaml > updated_values.yaml
 
           # 🔥 Debug ไฟล์ที่แก้ไขแล้ว
           echo "Updated values.yaml:"
