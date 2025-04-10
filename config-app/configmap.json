@@ -11,8 +11,6 @@
         "httpPort": "8801"
     },
     "mongo": {
-        "host": "mongodb://acParagon:acParagonPassword@10.138.38.233:25000,10.138.38.234:25000,10.138.38.235:25000/ac-paragon-stg",
-        "dbname": "ac-paragon-stg",
         "useDB": "",
         "options": {
             "readPreference": "secondaryPreferred",
@@ -367,9 +365,6 @@
             }
         },
         "commonMongoDB": {
-            "destHost": [
-                "10.138.38.233:25000,10.138.38.234:25000,10.138.38.235:25000"
-            ],
             "protocolDB": "mongodb",
             "dbType": "mongo",
             "dbName": "ac-paragon-stg",
